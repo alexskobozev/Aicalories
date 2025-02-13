@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -16,7 +15,7 @@ kotlin {
             }
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -30,6 +29,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":features:network:network-domain"))
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.serialization)
             implementation(libs.ktor.client.logging)
@@ -48,16 +48,13 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
     }
+    jvmToolchain(11)
 }
 
 android {
-    namespace = "com.wishnewjam.aicalories"
+    namespace = "com.wishnewjam.aicalories.network.data"
     compileSdk = 35
     defaultConfig {
         minSdk = 24
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
     }
 }
