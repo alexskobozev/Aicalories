@@ -30,6 +30,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":features:network:network-data"))
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.serialization)
             implementation(libs.ktor.client.logging)
