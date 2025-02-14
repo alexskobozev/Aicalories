@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -30,23 +29,12 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":features:network:network-data"))
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.serialization)
-            implementation(libs.ktor.client.logging)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.kotlinx.serialization.core)
-            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(project(":features:network"))
+            implementation(project(":features:chat:chat-data"))
             implementation(libs.koin.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        androidMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
         }
     }
 }

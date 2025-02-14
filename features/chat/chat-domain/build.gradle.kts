@@ -32,6 +32,7 @@ kotlin {
 
         }
     }
+    jvmToolchain(11)
 }
 
 android {

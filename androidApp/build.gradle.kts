@@ -41,7 +41,6 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":features:network:network-data"))
     implementation(libs.koin.core.jvm)
     implementation(projects.shared)
     implementation(libs.compose.ui)

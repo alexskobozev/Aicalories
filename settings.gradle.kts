@@ -18,7 +18,6 @@ rootProject.name = "Aicalories"
 include(":androidApp")
 include(":shared")
 
-include(":features:network:network-domain")
-include(":features:network:network-data")
+include(":features:network")
 include(":features:chat:chat-domain")
 include(":features:chat:chat-data")
