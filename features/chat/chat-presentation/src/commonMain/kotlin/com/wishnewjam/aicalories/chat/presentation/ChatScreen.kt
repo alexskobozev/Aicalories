@@ -21,11 +21,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wishnewjam.aicalories.chat.presentation.ChatViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun ChatScreen(chatViewModel: ChatViewModel = viewModel()) {
+fun ChatScreen() {
+    val chatViewModel: ChatViewModel = koinViewModel<ChatViewModel>()
     val chatResponse by chatViewModel.chatResponse.collectAsState()
     val isLoading by chatViewModel.isLoading.collectAsState()
 

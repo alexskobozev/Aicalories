@@ -32,6 +32,9 @@ kotlin {
             implementation(project(":features:network"))
             implementation(project(":features:chat:chat-data"))
             implementation(libs.koin.core)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(project.dependencies.platform(libs.koin.bom))
+            implementation(libs.koin.compose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

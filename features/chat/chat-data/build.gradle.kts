@@ -33,10 +33,10 @@ kotlin {
             api(project(":features:chat:chat-domain"))
             api(project(":features:chat:chat-presentation"))
             implementation(project(":features:network"))
+            implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
-            implementation(libs.koin.android)
             implementation(libs.ktor.client.core)
-
+            implementation(libs.koin.compose.viewmodel)
         }
     }
     jvmToolchain(11)

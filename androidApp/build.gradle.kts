@@ -36,13 +36,16 @@ android {
     }
 }
 
+
+
 kotlin {
     jvmToolchain(11)
 }
 
 dependencies {
+    implementation(project(":features:chat:chat-presentation"))
     implementation(libs.jetbrains.compose.material3)
-    implementation(libs.koin.core.jvm)
+//    implementation(libs.koin.core.jvm)
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
 }
