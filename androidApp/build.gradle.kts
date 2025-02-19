@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.composeMultiplatform)
 }
 
 android {
@@ -43,9 +44,9 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":features:chat:chat-presentation"))
+    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.jetbrains.compose.material3)
-//    implementation(libs.koin.core.jvm)
+    implementation(libs.koin.core.jvm)
     implementation(projects.shared)
     implementation(libs.androidx.activity.compose)
 }

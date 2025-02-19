@@ -12,7 +12,7 @@ class ChatRepositoryImpl(
     override suspend fun getChatResponse(message: String): String {
         val response =
             networkRepo.postData<ChatCompletionRequest, ChatCompletionResponse>(
-                url = "",
+                url = "https://api.openai.com/v1/chat/completions",
                 body = ChatCompletionRequest(
                     model = "gpt-3.5-turbo",
                     messages = listOf(

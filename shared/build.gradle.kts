@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.composeMultiplatform)
 }
 
 kotlin {
@@ -29,6 +31,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":features:chat:chat-presentation"))
             implementation(project(":features:network"))
             implementation(project(":features:chat:chat-data"))
             implementation(libs.koin.core)
