@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.ktor.client.core)
             implementation(libs.koin.compose.viewmodel)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
     jvmToolchain(11)
