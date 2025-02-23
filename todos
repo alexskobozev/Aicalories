@@ -1,0 +1,5 @@
+Add error handling for gpt mapping
+create koin di for network-fake module https://insert-koin.io/docs/reference/koin-test/testing/
+finalize network-fake module, add fakes to it and create test di
+add network-fake dep to chat-data
+implement chat tests
