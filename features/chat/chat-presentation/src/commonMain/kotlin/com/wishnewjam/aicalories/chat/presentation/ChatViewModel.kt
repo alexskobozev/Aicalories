@@ -23,7 +23,7 @@ class ChatViewModel(
             _isLoading.value = true
             try {
                 val response = chatRepository.getChatResponse(message)
-                _chatResponse.value = response
+                _chatResponse.value = response.toString()
             } catch (e: Exception) {
                 _chatResponse.value = "Ошибка: ${e.message}"
             } finally {

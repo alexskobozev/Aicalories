@@ -19,7 +19,6 @@ include(":androidApp")
 include(":shared")
 
 include(":features:network")
-include(":features:network-fake")
 include(":features:chat:chat-domain")
 include(":features:chat:chat-data")
 include(":features:chat:chat-presentation")
