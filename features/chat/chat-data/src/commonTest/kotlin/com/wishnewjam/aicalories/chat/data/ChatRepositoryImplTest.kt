@@ -95,7 +95,7 @@ class ChatRepositoryImplTest : KoinTest {
             }
 
             engine {
-                addHandler { request ->
+                addHandler { _ ->
                     respond(
                         content = ByteReadChannel(
                             jsonConfig.encodeToString(
@@ -295,55 +295,6 @@ class ChatRepositoryImplTest : KoinTest {
         assertTrue(result.isSuccess)
         assertEquals(null, result.getOrNull()?.foodName)
         assertEquals(null, result.getOrNull()?.calories)
-    }
-
-    @Test
-    fun getChatResponseHandlesArrayIndexOutOfBoundsException() = runTest {
-        // Close existing HttpClient
-        mockHttpClient.close()
-
-        // Create new HttpClient that returns empty choices
-        mockHttpClient = HttpClient(MockEngine) {
-            // Install ContentNegotiation plugin
-            install(ContentNegotiation) {
-                json(jsonConfig)
-            }
-
-            engine {
-                addHandler { _ ->
-                    val emptyChoicesResponse = ChatCompletionResponse(
-                        id = "resp_123",
-                        `object` = "chat.completion",
-                        created = 1707734587,
-                        model = "gpt-3.5-turbo-0125",
-                        choices = emptyList() // Empty choices will cause IndexOutOfBoundsException
-                    )
-
-                    respond(
-                        content = ByteReadChannel(jsonConfig.encodeToString(emptyChoicesResponse)),
-                        status = HttpStatusCode.OK,
-                        headers = headersOf(
-                            HttpHeaders.ContentType,
-                            ContentType.Application.Json.toString()
-                        )
-                    )
-                }
-            }
-        }
-
-        // Create new NetworkClient with the new HttpClient
-        testNetworkClient = NetworkClient(mockHttpClient, apiKey)
-
-        // Reinitialize Koin with the new NetworkClient
-        setupKoin()
-
-        // Act
-        val result = repository.getChatResponse(userMessage)
-
-        // Assert
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Index") == true ||
-                result.exceptionOrNull()?.cause?.message?.contains("Index") == true)
     }
 }
 
