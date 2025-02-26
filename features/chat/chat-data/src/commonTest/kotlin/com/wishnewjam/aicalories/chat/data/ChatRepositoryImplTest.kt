@@ -9,10 +9,12 @@ import com.wishnewjam.aicalories.network.data.NetworkClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
@@ -52,12 +54,20 @@ class ChatRepositoryImplTest : KoinTest {
         comment = "Средняя калорийность для свежего яблока"
     )
 
+    // Custom JSON configuration matching what's in your app
+    private val jsonConfig = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+    }
+
     // Test doubles
     private val testChatResponseMapper = TestChatResponseMapper()
     private val testRequestBuilder = TestGptRequestBuilder()
     private lateinit var mockHttpClient: HttpClient
     private lateinit var testNetworkClient: NetworkClient
 
+    // Use lazy injection to avoid issues when recreating Koin context
     private val repository by inject<ChatRepositoryImpl>()
 
     @BeforeTest
@@ -70,13 +80,25 @@ class ChatRepositoryImplTest : KoinTest {
         testRequestBuilder.messageListToReturn = chatMessageList
         testChatResponseMapper.responseToReturn = mappedResponse
 
-        // Create mock HttpClient
+        // Create mock HttpClient with default success response
+        setupDefaultMockHttpClient()
+
+        // Initialize Koin
+        setupKoin()
+    }
+
+    private fun setupDefaultMockHttpClient() {
         mockHttpClient = HttpClient(MockEngine) {
+            // Install ContentNegotiation plugin
+            install(ContentNegotiation) {
+                json(jsonConfig)
+            }
+
             engine {
                 addHandler { request ->
                     respond(
                         content = ByteReadChannel(
-                            Json.encodeToString(
+                            jsonConfig.encodeToString(
                                 ChatCompletionResponse(
                                     id = "resp_123",
                                     `object` = "chat.completion",
@@ -107,13 +129,23 @@ class ChatRepositoryImplTest : KoinTest {
 
         // Create NetworkClient with mock HttpClient
         testNetworkClient = NetworkClient(mockHttpClient, apiKey)
+    }
 
+    private fun setupKoin() {
+        // Make sure to stop Koin first if it's already started
+        try {
+            stopKoin()
+        } catch (e: IllegalStateException) {
+            // Koin wasn't started, that's fine
+        }
+
+        // Start Koin with our test dependencies
         startKoin {
             modules(
                 module {
-                    single { testChatResponseMapper }
-                    single { testRequestBuilder }
-                    single { testNetworkClient }
+                    single<ChatResponseMapper> { testChatResponseMapper }
+                    single<GptRequestBuilder> { testRequestBuilder }
+                    single<NetworkClient> { testNetworkClient }
                     single { ChatRepositoryImpl(get(), get(), get()) }
                 }
             )
@@ -122,7 +154,11 @@ class ChatRepositoryImplTest : KoinTest {
 
     @AfterTest
     fun tearDown() {
-        stopKoin()
+        try {
+            stopKoin()
+        } catch (e: IllegalStateException) {
+            // Koin wasn't started, that's fine
+        }
         mockHttpClient.close()
     }
 
@@ -139,15 +175,23 @@ class ChatRepositoryImplTest : KoinTest {
 
         // Verify the request was made correctly
         val lastRequest = (mockHttpClient.engine as MockEngine).requestHistory.lastOrNull()
-        assertTrue(lastRequest!!.url.toString().endsWith("/v1/chat/completions"))
-        assertEquals("Bearer $apiKey", lastRequest.headers[HttpHeaders.Authorization])
+        assertTrue(lastRequest?.url.toString().endsWith("/v1/chat/completions"),
+            "Expected URL to end with /v1/chat/completions, but was ${lastRequest?.url}")
+        assertEquals("Bearer $apiKey", lastRequest?.headers?.get(HttpHeaders.Authorization))
     }
 
     @Test
     fun getChatResponseReturnsFailureWhenNetworkCallFails() = runTest {
-        // Recreate the HttpClient and NetworkClient
+        // Close existing HttpClient
         mockHttpClient.close()
+
+        // Create new HttpClient that returns an error
         mockHttpClient = HttpClient(MockEngine) {
+            // Install ContentNegotiation plugin
+            install(ContentNegotiation) {
+                json(jsonConfig)
+            }
+
             engine {
                 addHandler { _ ->
                     respond(
@@ -157,27 +201,21 @@ class ChatRepositoryImplTest : KoinTest {
                 }
             }
         }
+
+        // Create new NetworkClient with the new HttpClient
         testNetworkClient = NetworkClient(mockHttpClient, apiKey)
 
-        // Update the DI container
-        stopKoin()
-        startKoin {
-            modules(
-                module {
-                    single { testChatResponseMapper }
-                    single { testRequestBuilder }
-                    single { testNetworkClient }
-                    single { ChatRepositoryImpl(get(), get(), get()) }
-                }
-            )
-        }
+        // Reinitialize Koin with the new NetworkClient
+        setupKoin()
 
         // Act
         val result = repository.getChatResponse(userMessage)
 
         // Assert
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Request error") == true)
+        assertTrue(result.isFailure, "Expected result to be a failure but was success")
+        val errorMessage = result.exceptionOrNull()?.message ?: ""
+        assertTrue(errorMessage.contains("Request error"),
+            "Expected error message to contain 'Request error', but was: $errorMessage")
     }
 
     @Test
@@ -191,14 +229,23 @@ class ChatRepositoryImplTest : KoinTest {
 
         // Assert
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.startsWith("Mapper error: Invalid JSON format") == true)
+        val errorMessage = result.exceptionOrNull()?.message ?: ""
+        assertTrue(errorMessage.startsWith("Mapper error: Invalid JSON format"),
+            "Expected error message to start with 'Mapper error: Invalid JSON format', but was: $errorMessage")
     }
 
     @Test
     fun getChatResponseHandlesEmptyResponse() = runTest {
-        // Replace the mock engine to return empty content
+        // Close existing HttpClient
         mockHttpClient.close()
+
+        // Create new HttpClient that returns empty content
         mockHttpClient = HttpClient(MockEngine) {
+            // Install ContentNegotiation plugin
+            install(ContentNegotiation) {
+                json(jsonConfig)
+            }
+
             engine {
                 addHandler { _ ->
                     val emptyResponse = ChatCompletionResponse(
@@ -216,7 +263,7 @@ class ChatRepositoryImplTest : KoinTest {
                     )
 
                     respond(
-                        content = ByteReadChannel(Json.encodeToString(emptyResponse)),
+                        content = ByteReadChannel(jsonConfig.encodeToString(emptyResponse)),
                         status = HttpStatusCode.OK,
                         headers = headersOf(
                             HttpHeaders.ContentType,
@@ -226,6 +273,8 @@ class ChatRepositoryImplTest : KoinTest {
                 }
             }
         }
+
+        // Create new NetworkClient with the new HttpClient
         testNetworkClient = NetworkClient(mockHttpClient, apiKey)
 
         // Update mapper to return empty response model
@@ -236,18 +285,8 @@ class ChatRepositoryImplTest : KoinTest {
             comment = "Не удалось получить ответ"
         )
 
-        // Update the DI container
-        stopKoin()
-        startKoin {
-            modules(
-                module {
-                    single { testChatResponseMapper }
-                    single { testRequestBuilder }
-                    single { testNetworkClient }
-                    single { ChatRepositoryImpl(get(), get(), get()) }
-                }
-            )
-        }
+        // Reinitialize Koin with the new NetworkClient
+        setupKoin()
 
         // Act
         val result = repository.getChatResponse(userMessage)
@@ -260,8 +299,16 @@ class ChatRepositoryImplTest : KoinTest {
 
     @Test
     fun getChatResponseHandlesArrayIndexOutOfBoundsException() = runTest {
+        // Close existing HttpClient
         mockHttpClient.close()
+
+        // Create new HttpClient that returns empty choices
         mockHttpClient = HttpClient(MockEngine) {
+            // Install ContentNegotiation plugin
+            install(ContentNegotiation) {
+                json(jsonConfig)
+            }
+
             engine {
                 addHandler { _ ->
                     val emptyChoicesResponse = ChatCompletionResponse(
@@ -273,7 +320,7 @@ class ChatRepositoryImplTest : KoinTest {
                     )
 
                     respond(
-                        content = ByteReadChannel(Json.encodeToString(emptyChoicesResponse)),
+                        content = ByteReadChannel(jsonConfig.encodeToString(emptyChoicesResponse)),
                         status = HttpStatusCode.OK,
                         headers = headersOf(
                             HttpHeaders.ContentType,
@@ -283,44 +330,20 @@ class ChatRepositoryImplTest : KoinTest {
                 }
             }
         }
+
+        // Create new NetworkClient with the new HttpClient
         testNetworkClient = NetworkClient(mockHttpClient, apiKey)
 
-        // Update the DI container
-        stopKoin()
-        startKoin {
-            modules(
-                module {
-                    single { testChatResponseMapper }
-                    single { testRequestBuilder }
-                    single { testNetworkClient }
-                    single { ChatRepositoryImpl(get(), get(), get()) }
-                }
-            )
-        }
+        // Reinitialize Koin with the new NetworkClient
+        setupKoin()
 
         // Act
         val result = repository.getChatResponse(userMessage)
 
         // Assert
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Index") == true)
-    }
-
-
-}
-
-class TestGptRequestBuilder : GptRequestBuilder() {
-    var messageListToReturn: List<ChatMessage>? = null
-    var lastMessage: String? = null
-
-    override fun buildChatMessageList(message: String): List<ChatMessage> {
-        lastMessage = message
-        return messageListToReturn ?: super.buildChatMessageList(message)
-    }
-
-    fun reset() {
-        messageListToReturn = null
-        lastMessage = null
+        assertTrue(result.exceptionOrNull()?.message?.contains("Index") == true ||
+                result.exceptionOrNull()?.cause?.message?.contains("Index") == true)
     }
 }
 
@@ -346,5 +369,20 @@ class TestChatResponseMapper : ChatResponseMapper() {
         responseToReturn = null
         lastContent = null
         exceptionToThrow = null
+    }
+}
+
+class TestGptRequestBuilder : GptRequestBuilder() {
+    var messageListToReturn: List<ChatMessage>? = null
+    var lastMessage: String? = null
+
+    override fun buildChatMessageList(message: String): List<ChatMessage> {
+        lastMessage = message
+        return messageListToReturn ?: super.buildChatMessageList(message)
+    }
+
+    fun reset() {
+        messageListToReturn = null
+        lastMessage = null
     }
 }

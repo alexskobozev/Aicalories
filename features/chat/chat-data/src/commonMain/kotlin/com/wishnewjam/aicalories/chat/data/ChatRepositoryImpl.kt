@@ -13,24 +13,36 @@ class ChatRepositoryImpl(
     private val chatRequestBuilder: GptRequestBuilder,
 ) : ChatRepository {
     override suspend fun getChatResponse(message: String): Result<ChatResponseModel> {
-        val requestResult =
-            networkRepo.postData<ChatCompletionRequest, Result<ChatCompletionResponse>>(
+        // Build the request
+        val request = ChatCompletionRequest(
+            model = "gpt-3.5-turbo",
+            messages = chatRequestBuilder.buildChatMessageList(message),
+            temperature = 0.7
+        )
+
+        // Make the API call
+        return try {
+            val response = networkRepo.postData<ChatCompletionRequest, ChatCompletionResponse>(
                 url = "https://api.openai.com/v1/chat/completions",
-                body = ChatCompletionRequest(
-                    model = "gpt-3.5-turbo",
-                    messages = chatRequestBuilder.buildChatMessageList(message),
-                    temperature = 0.7
-                ),
-            ).getOrElse { th: Throwable ->
-                return Result.failure(
-                    Exception("Request error: ${th.message}")
+                body = request
+            )
+
+            // Process the response
+            try {
+                // Extract the content from the first choice
+                val content = response.choices.firstOrNull()?.message?.content
+                    ?: return Result.failure(Exception("Empty response from API"))
+
+                // Map the content to our domain model
+                Result.success(chatResponseMapper(content))
+            } catch (e: Exception) {
+                Result.failure(
+                    Exception("Mapper error: ${e.message}, response: $response")
                 )
             }
-        return runCatching {
-            chatResponseMapper(requestResult.choices[0].message.content)
-        }.recoverCatching { th: Throwable ->
-            return Result.failure(
-                Exception("Mapper error: ${th.message}, response: $requestResult")
+        } catch (e: Exception) {
+            Result.failure(
+                Exception("Request error: ${e.message}")
             )
         }
     }
