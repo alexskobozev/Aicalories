@@ -40,8 +40,15 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
+            implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.kotlin.test)
             implementation(libs.coroutines.test)
+            implementation(libs.coroutines.test)
+            implementation(libs.koin.test)
+            implementation(libs.ktor.client.mock)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
         }
     }
     jvmToolchain(11)

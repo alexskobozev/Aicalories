@@ -21,14 +21,16 @@ class ChatViewModel(
     fun sendMessage(message: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                val response = chatRepository.getChatResponse(message)
-                _chatResponse.value = response.toString()
-            } catch (e: Exception) {
-                _chatResponse.value = "Ошибка: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
+            chatRepository.getChatResponse(message).fold(
+                onSuccess = {
+                    _chatResponse.value = it.toString()
+                    _isLoading.value = false
+                },
+                onFailure = {
+                    _chatResponse.value = "Ошибка: ${it.message}"
+                    _isLoading.value = false
+                }
+            )
         }
     }
 }

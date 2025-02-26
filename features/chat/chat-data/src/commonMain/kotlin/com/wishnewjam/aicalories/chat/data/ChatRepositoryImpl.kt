@@ -12,16 +12,26 @@ class ChatRepositoryImpl(
     private val chatResponseMapper: ChatResponseMapper,
     private val chatRequestBuilder: GptRequestBuilder,
 ) : ChatRepository {
-    override suspend fun getChatResponse(message: String): ChatResponseModel {
-        val response =
-            networkRepo.postData<ChatCompletionRequest, ChatCompletionResponse>(
+    override suspend fun getChatResponse(message: String): Result<ChatResponseModel> {
+        val requestResult =
+            networkRepo.postData<ChatCompletionRequest, Result<ChatCompletionResponse>>(
                 url = "https://api.openai.com/v1/chat/completions",
                 body = ChatCompletionRequest(
                     model = "gpt-3.5-turbo",
                     messages = chatRequestBuilder.buildChatMessageList(message),
                     temperature = 0.7
                 ),
+            ).getOrElse { th: Throwable ->
+                return Result.failure(
+                    Exception("Request error: ${th.message}")
+                )
+            }
+        return runCatching {
+            chatResponseMapper(requestResult.choices[0].message.content)
+        }.recoverCatching { th: Throwable ->
+            return Result.failure(
+                Exception("Mapper error: ${th.message}, response: $requestResult")
             )
-        return chatResponseMapper(response.choices[0].message.content)
+        }
     }
 }

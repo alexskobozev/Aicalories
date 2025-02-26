@@ -2,8 +2,8 @@ package com.wishnewjam.aicalories.chat.data
 
 import com.wishnewjam.aicalories.chat.data.model.ChatMessage
 
-class GptRequestBuilder {
-    fun buildChatMessageList(
+open class GptRequestBuilder {
+    open fun buildChatMessageList(
         message: String
     ): List<ChatMessage> = listOf(
         ChatMessage(
