@@ -32,6 +32,9 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":features:chat:chat-domain"))
+            implementation(project(":features:resources"))
+            implementation(libs.components.resources)
+            implementation(libs.compose.runtime)
             implementation(libs.lifecycle.viewmodel.compose)
             implementation(libs.jetbrains.compose.material3)
             implementation(project.dependencies.platform(libs.koin.bom))
@@ -43,7 +46,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.wishnewjam.aicalories.chat.domain"
+    namespace = "com.wishnewjam.aicalories.chat.presentation"
     compileSdk = 35
     defaultConfig {
         minSdk = 24

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">AiCalories</string>
+    
+    <!-- Chat Screen -->
+    <string name="input_label">Enter food and weight</string>
+    <string name="input_placeholder">Example: apple 100g</string>
+    <string name="send_button">Send</string>
+    <string name="analyzing_product">Analyzing product...</string>
+    <string name="save_button">Save</string>
+    
+    <!-- Empty State -->
+    <string name="empty_state_title">Count calories together</string>
+    <string name="empty_state_message">Enter the name of the product and its weight to find out the calorie content</string>
+    
+    <!-- Food Response -->
+    <string name="product">Product</string>
+    <string name="calories">Calories: %d kcal</string>
+    <string name="weight">Weight: %d g</string>
+    <string name="note">Note: %s</string>
+    
+    <!-- Error Messages -->
+    <string name="error_title">An error occurred</string>
+    <string name="error_prefix">Error: </string>
+    <string name="not_found_title">Information not found</string>
+    <string name="not_found_message">Could not get information about the product. Please clarify your request.</string>
+</resources>

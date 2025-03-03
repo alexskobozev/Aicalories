@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">AiCalories</string>
+    
+    <!-- Chat Screen -->
+    <string name="input_label">Введите продукт и вес</string>
+    <string name="input_placeholder">Например: яблоко 100г</string>
+    <string name="send_button">Отправить</string>
+    <string name="analyzing_product">Анализирую продукт...</string>
+    <string name="save_button">Сохранить</string>
+    
+    <!-- Empty State -->
+    <string name="empty_state_title">Считаем калории вместе</string>
+    <string name="empty_state_message">Введите название продукта и его вес, чтобы узнать калорийность</string>
+    
+    <!-- Food Response -->
+    <string name="product">Продукт</string>
+    <string name="calories">Калорийность: %d ккал</string>
+    <string name="weight">Вес: %d г</string>
+    <string name="note">Примечание: %s</string>
+    
+    <!-- Error Messages -->
+    <string name="error_title">Произошла ошибка</string>
+    <string name="error_prefix">Ошибка: </string>
+    <string name="not_found_title">Информация не найдена</string>
+    <string name="not_found_message">Не удалось получить информацию о продукте. Пожалуйста, уточните запрос.</string>
+</resources>

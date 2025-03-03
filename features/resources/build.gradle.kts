@@ -3,8 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
@@ -17,7 +17,7 @@ kotlin {
             }
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
@@ -31,31 +31,23 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":features:resources"))
-            implementation(project(":features:chat:chat-presentation"))
-            implementation(project(":features:network"))
-            implementation(project(":features:chat:chat-data"))
             implementation(libs.components.resources)
             implementation(libs.compose.runtime)
-            implementation(libs.koin.core)
-            implementation(libs.lifecycle.viewmodel.compose)
-            implementation(project.dependencies.platform(libs.koin.bom))
-            implementation(libs.koin.compose)
-        }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
         }
     }
+    jvmToolchain(11)
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.wishnewjam.aicalories.resources"
+    generateResClass = auto
 }
 
 android {
-    namespace = "com.wishnewjam.aicalories"
+    namespace = "com.wishnewjam.aicalories.resources"
     compileSdk = 35
     defaultConfig {
         minSdk = 24
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
     }
 }

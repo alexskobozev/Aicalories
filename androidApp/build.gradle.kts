@@ -46,7 +46,9 @@ kotlin {
 dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.jetbrains.compose.material3)
-    implementation(libs.koin.core.jvm)
+    implementation(libs.compose.runtime)
+    implementation(libs.components.resources)
     implementation(projects.shared)
+    implementation(projects.features.resources)
     implementation(libs.androidx.activity.compose)
 }
