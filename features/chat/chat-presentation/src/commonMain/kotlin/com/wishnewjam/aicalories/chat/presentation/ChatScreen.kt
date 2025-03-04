@@ -3,8 +3,12 @@
 package com.wishnewjam.aicalories.chat.presentation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,21 +18,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,13 +48,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,8 +87,9 @@ fun ChatScreen() {
     val isLoading by chatViewModel.isLoading.collectAsState()
     val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
     var inputText by remember { mutableStateOf("") }
+    val inputIsValid by remember { derivedStateOf { inputText.trim().isNotEmpty() } }
 
     LaunchedEffect(chatResponse) {
         scrollState.animateScrollTo(scrollState.maxValue)
@@ -83,22 +102,43 @@ fun ChatScreen() {
                 title = {
                     Text(
                         stringResource(Res.string.app_name),
-                        style = MaterialTheme.typography.headlineMedium
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 },
-                scrollBehavior = scrollBehavior
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
     ) { paddingValues ->
         Surface(
             modifier = Modifier
-                .fillMaxSize().padding(paddingValues),
+                .fillMaxSize()
+                .padding(paddingValues),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize().padding(16.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
+                // Loading indicator
+                AnimatedVisibility(
+                    visible = isLoading,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        strokeCap = StrokeCap.Round
+                    )
+                }
+
                 // Response section
                 Box(
                     modifier = Modifier
@@ -120,59 +160,88 @@ fun ChatScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        label = {
+                            Text(
+                                stringResource(Res.string.input_label),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                stringResource(Res.string.input_placeholder),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it },
-                            label = { Text(stringResource(Res.string.input_label)) },
-                            placeholder = { Text(stringResource(Res.string.input_placeholder)) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(24.dp),
-                            singleLine = true
-                        )
+                        shape = RoundedCornerShape(24.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        ),
+                        trailingIcon = {
+                            val alpha by animateFloatAsState(
+                                targetValue = if (inputIsValid) 1f else 0.5f,
+                                label = "Send button alpha"
+                            )
 
-                        IconButton(
-                            onClick = {
-                                if (inputText.isNotBlank()) {
-                                    chatViewModel.sendMessage(inputText)
-                                    inputText = ""
+                            IconButton(
+                                onClick = {
+                                    if (inputIsValid) {
+                                        chatViewModel.sendMessage(inputText)
+                                        inputText = ""
+                                    }
+                                },
+                                enabled = !isLoading && inputIsValid,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .alpha(alpha)
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Default.Send,
+                                        contentDescription = stringResource(Res.string.send_button),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            },
-                            enabled = !isLoading && inputText.isNotBlank(),
-                            modifier = Modifier.padding(start = 8.dp)
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.padding(4.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Send,
-                                    contentDescription = stringResource(Res.string.send_button),
-                                    tint = if (inputText.isBlank())
-                                        MaterialTheme.colorScheme.outline
-                                    else
-                                        MaterialTheme.colorScheme.primary
-                                )
                             }
                         }
-                    }
+                    )
 
                     AnimatedVisibility(
                         visible = isLoading,
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
-                        Text(
-                            text = stringResource(Res.string.analyzing_product),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+
+                            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+
+                            Text(
+                                text = stringResource(Res.string.analyzing_product),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -182,29 +251,37 @@ fun ChatScreen() {
 
 @Composable
 private fun ResponseCard(chatResponse: String) {
+    val errorPrefix = stringResource(Res.string.error_prefix)
+    val notFoundMessage = stringResource(Res.string.not_found_message)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        val errorPrefix = stringResource(Res.string.error_prefix)
-        val notFoundMessage = stringResource(Res.string.not_found_message)
+            containerColor = when {
+                chatResponse.startsWith(errorPrefix) -> MaterialTheme.colorScheme.errorContainer.copy(
+                    alpha = 0.7f
+                )
 
+                chatResponse == notFoundMessage -> MaterialTheme.colorScheme.secondaryContainer.copy(
+                    alpha = 0.7f
+                )
+
+                else -> MaterialTheme.colorScheme.surfaceVariant
+            }
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
         when {
             chatResponse.startsWith(errorPrefix) -> {
                 ErrorResponseContent(errorMessage = chatResponse)
             }
-
             chatResponse == notFoundMessage -> {
                 NotFoundResponseContent(message = chatResponse)
             }
-
             else -> {
-                // Normal food response
                 FoodResponseContent(chatResponse = chatResponse)
             }
         }
@@ -214,7 +291,7 @@ private fun ResponseCard(chatResponse: String) {
 @Composable
 private fun FoodResponseContent(chatResponse: String) {
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Extract title and content
@@ -225,11 +302,12 @@ private fun FoodResponseContent(chatResponse: String) {
         // Title with emoji
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Format the details as key-value pairs
         val detailLines = details.split("\n")
@@ -237,20 +315,38 @@ private fun FoodResponseContent(chatResponse: String) {
             if (line.isNotEmpty()) {
                 val parts = line.split(":", limit = 2)
                 if (parts.size == 2) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 0.dp
+                        )
                     ) {
-                        Text(
-                            text = "${parts[0]}:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                        Text(
-                            text = parts[1].trim(),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = parts[0],
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Text(
+                                text = parts[1].trim(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 } else {
                     // Comment or other non-key-value content
@@ -263,17 +359,32 @@ private fun FoodResponseContent(chatResponse: String) {
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Action buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ElevatedButton(
-                onClick = { /* Add to favorites or save */ }
+            FilledTonalIconButton(
+                onClick = { /* Add to favorites or save */ },
+                modifier = Modifier.padding(end = 8.dp)
             ) {
-                Text(stringResource(Res.string.save_button))
+                Icon(
+                    imageVector = Icons.Default.Call,
+                    contentDescription = null
+                )
+            }
+
+            ElevatedButton(
+                onClick = { /* Add to favorites or save */ },
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.save_button),
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }
@@ -282,21 +393,44 @@ private fun FoodResponseContent(chatResponse: String) {
 @Composable
 private fun ErrorResponseContent(errorMessage: String) {
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.error_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+
+            Text(
+                text = stringResource(Res.string.error_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
 
         val errorPrefix = stringResource(Res.string.error_prefix)
         Text(
             text = errorMessage.removePrefix(errorPrefix),
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(start = 48.dp)
         )
     }
 }
@@ -304,20 +438,43 @@ private fun ErrorResponseContent(errorMessage: String) {
 @Composable
 private fun NotFoundResponseContent(message: String) {
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = stringResource(Res.string.not_found_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.secondary
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+
+            Text(
+                text = stringResource(Res.string.not_found_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
 
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(start = 48.dp)
         )
     }
 }
@@ -333,20 +490,57 @@ private fun EmptyStateMessage() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(24.dp)
         ) {
+            // Decorative element
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🍎",
+                    style = MaterialTheme.typography.displayMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = stringResource(Res.string.empty_state_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
 
+            val annotatedText = buildAnnotatedString {
+                val msg = stringResource(Res.string.empty_state_message)
+                append(msg)
+
+                // Highlight a key phrase (предполагаем, что есть важная фраза в тексте)
+                val keyPhrase = "продукт"
+                val startIndex = msg.indexOf(keyPhrase)
+                if (startIndex >= 0) {
+                    addStyle(
+                        SpanStyle(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        start = startIndex,
+                        end = startIndex + keyPhrase.length
+                    )
+                }
+            }
+
             Text(
-                text = stringResource(Res.string.empty_state_message),
+                text = annotatedText,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2f
             )
         }
     }
