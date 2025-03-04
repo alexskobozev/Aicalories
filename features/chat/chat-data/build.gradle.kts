@@ -32,6 +32,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":features:chat:chat-domain"))
             api(project(":features:chat:chat-presentation"))
+            implementation(project(":features:logging"))
             implementation(project(":features:network"))
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)

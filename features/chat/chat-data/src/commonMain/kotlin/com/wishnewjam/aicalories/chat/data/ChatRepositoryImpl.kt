@@ -5,12 +5,14 @@ import com.wishnewjam.aicalories.chat.data.model.ChatCompletionResponse
 import com.wishnewjam.aicalories.chat.data.model.ChatResponseMapper
 import com.wishnewjam.aicalories.chat.domain.ChatRepository
 import com.wishnewjam.aicalories.chat.domain.model.ChatResponseModel
+import com.wishnewjam.aicalories.logging.Logger
 import com.wishnewjam.aicalories.network.data.NetworkClient
 
 class ChatRepositoryImpl(
     private val networkRepo: NetworkClient,
     private val chatResponseMapper: ChatResponseMapper,
     private val chatRequestBuilder: GptRequestBuilder,
+    private val logger: Logger,
 ) : ChatRepository {
     override suspend fun getChatResponse(message: String): Result<ChatResponseModel> {
         // Build the request
@@ -36,11 +38,17 @@ class ChatRepositoryImpl(
                 // Map the content to our domain model
                 Result.success(chatResponseMapper(content))
             } catch (e: Exception) {
+                logger.e(e) {
+                    "Error mapping response: ${e.message}"
+                }
                 Result.failure(
                     Exception("Mapper error: ${e.message}, response: $response")
                 )
             }
         } catch (e: Exception) {
+            logger.e(e) {
+                "Error request: ${e.message}"
+            }
             Result.failure(
                 Exception("Request error: ${e.message}")
             )

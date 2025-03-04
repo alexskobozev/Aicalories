@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.wishnewjam.aicalories.chat.di.chatDataModule
 import com.wishnewjam.aicalories.chat.presentation.ChatScreen
 import com.wishnewjam.aicalories.network.di.networkDataModule
+import com.wishnewjam.aicalories.logging.di.loggerModule
 import org.koin.compose.KoinApplication
 
 @Composable
@@ -13,6 +14,7 @@ fun MainApp() {
             modules(
                 networkDataModule,
                 chatDataModule,
+                loggerModule
             )
         }
     ) {

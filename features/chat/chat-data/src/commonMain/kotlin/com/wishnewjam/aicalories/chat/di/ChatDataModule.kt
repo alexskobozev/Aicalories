@@ -17,6 +17,7 @@ val chatDataModule = module {
             networkRepo = get(),
             chatResponseMapper = get(),
             chatRequestBuilder = get(),
+            logger = get()
         )
     }
     single<ChatResponseMapper> {

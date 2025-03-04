@@ -31,6 +31,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":features:logging"))
             implementation(project(":features:resources"))
             implementation(project(":features:chat:chat-presentation"))
             implementation(project(":features:network"))

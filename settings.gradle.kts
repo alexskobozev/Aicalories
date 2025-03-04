@@ -19,6 +19,7 @@ include(":androidApp")
 include(":shared")
 
 include(":features:resources")
+include(":features:logging")
 include(":features:network")
 include(":features:chat:chat-domain")
 include(":features:chat:chat-data")
