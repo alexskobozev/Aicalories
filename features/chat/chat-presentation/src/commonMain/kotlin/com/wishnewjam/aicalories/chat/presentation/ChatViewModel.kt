@@ -24,6 +24,12 @@ class ChatViewModel(
     private val _chatResponse = MutableStateFlow("")
     val chatResponse: StateFlow<String> = _chatResponse.asStateFlow()
 
+    private val _chatResponseModel = MutableStateFlow(ChatResponseModel.empty())
+    val chatResponseModel: StateFlow<ChatResponseModel> = _chatResponseModel.asStateFlow()
+
+    private val _savedModelsList = MutableStateFlow(listOf<ChatResponseModel>())
+    val savedModelsList: StateFlow<List<ChatResponseModel>> = _savedModelsList.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -34,7 +40,9 @@ class ChatViewModel(
             _isLoading.value = true
             chatRepository.getChatResponse(message).fold(
                 onSuccess = { response ->
+                    // TODO: unify 2 flows
                     _chatResponse.value = formatResponse(response)
+                    _chatResponseModel.value = response
                     _isLoading.value = false
                 },
                 onFailure = { error ->
@@ -80,5 +88,10 @@ class ChatViewModel(
             if (weightText.isNotEmpty()) append("$weightText\n")
             if (commentText.isNotEmpty()) append("\n$commentText")
         }.trim()
+    }
+
+    fun saveResponse(chatResponseModel: ChatResponseModel) {
+        _savedModelsList.value += chatResponseModel
+        _chatResponse.value = ""
     }
 }

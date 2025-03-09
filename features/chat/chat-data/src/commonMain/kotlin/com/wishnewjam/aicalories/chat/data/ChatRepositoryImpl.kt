@@ -7,6 +7,10 @@ import com.wishnewjam.aicalories.chat.domain.ChatRepository
 import com.wishnewjam.aicalories.chat.domain.model.ChatResponseModel
 import com.wishnewjam.aicalories.logging.Logger
 import com.wishnewjam.aicalories.network.data.NetworkClient
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 class ChatRepositoryImpl(
     private val networkRepo: NetworkClient,
@@ -35,8 +39,10 @@ class ChatRepositoryImpl(
                 val content = response.choices.firstOrNull()?.message?.content
                     ?: return Result.failure(Exception("Empty response from API"))
 
-                // Map the content to our domain model
-                Result.success(chatResponseMapper(content))
+                // Map the content to our domain modelpeaca
+                val value = chatResponseMapper(content)
+                value.date = LocalDateTime.now()
+                Result.success(value)
             } catch (e: Exception) {
                 logger.e(e) {
                     "Error mapping response: ${e.message}"
@@ -55,3 +61,6 @@ class ChatRepositoryImpl(
         }
     }
 }
+
+fun LocalDateTime.Companion.now(): LocalDateTime =
+    Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())

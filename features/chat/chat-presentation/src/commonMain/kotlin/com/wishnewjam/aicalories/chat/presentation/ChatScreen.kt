@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -84,6 +86,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ChatScreen() {
     val chatViewModel: ChatViewModel = koinViewModel()
     val chatResponse by chatViewModel.chatResponse.collectAsState()
+    val savedModels by chatViewModel.savedModelsList.collectAsState()
+    val chatResponseModel by chatViewModel.chatResponseModel.collectAsState()
     val isLoading by chatViewModel.isLoading.collectAsState()
     val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -139,6 +143,18 @@ fun ChatScreen() {
                     )
                 }
 
+                LazyColumn {
+                    items(
+                        items = savedModels,
+                        key =  { it.date.toString() },
+                    ){
+                        ResponseCard(
+                            chatResponse = it.toString(),
+                            onSaveClick = { chatViewModel.saveResponse(it) }
+                        )
+                    }
+                }
+
                 // Response section
                 Box(
                     modifier = Modifier
@@ -147,7 +163,9 @@ fun ChatScreen() {
                         .verticalScroll(scrollState)
                 ) {
                     if (chatResponse.isNotEmpty()) {
-                        ResponseCard(chatResponse = chatResponse)
+                        ResponseCard(
+                            chatResponse = chatResponse,
+                            onSaveClick = { chatViewModel.saveResponse(chatResponseModel) })
                     } else {
                         EmptyStateMessage()
                     }
@@ -250,7 +268,7 @@ fun ChatScreen() {
 }
 
 @Composable
-private fun ResponseCard(chatResponse: String) {
+private fun ResponseCard(chatResponse: String, onSaveClick: () -> Unit) {
     val errorPrefix = stringResource(Res.string.error_prefix)
     val notFoundMessage = stringResource(Res.string.not_found_message)
 
@@ -282,14 +300,17 @@ private fun ResponseCard(chatResponse: String) {
                 NotFoundResponseContent(message = chatResponse)
             }
             else -> {
-                FoodResponseContent(chatResponse = chatResponse)
+                FoodResponseContent(chatResponse = chatResponse, onSaveClick = onSaveClick)
             }
         }
     }
 }
 
 @Composable
-private fun FoodResponseContent(chatResponse: String) {
+private fun FoodResponseContent(
+    chatResponse: String,
+    onSaveClick: () -> Unit,
+) {
     Column(
         modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -378,7 +399,7 @@ private fun FoodResponseContent(chatResponse: String) {
             }
 
             ElevatedButton(
-                onClick = { /* Add to favorites or save */ },
+                onClick = onSaveClick,
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
