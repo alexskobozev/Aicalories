@@ -7,6 +7,9 @@ import com.wishnewjam.aicalories.chat.domain.ChatRepository
 import com.wishnewjam.aicalories.chat.domain.model.ChatResponseModel
 import com.wishnewjam.aicalories.logging.Logger
 import com.wishnewjam.aicalories.network.data.NetworkClient
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -59,6 +62,17 @@ class ChatRepositoryImpl(
                 Exception("Request error: ${e.message}")
             )
         }
+    }
+
+    private val _modelsFlow = MutableStateFlow<List<ChatResponseModel>>(listOf())
+
+    override fun getHistory(): Flow<List<ChatResponseModel>> = _modelsFlow.asStateFlow()
+
+    override fun saveChatResponse(model: ChatResponseModel) {
+        val updatedList = _modelsFlow.value.toMutableList().apply {
+            add(model)
+        }
+        _modelsFlow.value = updatedList
     }
 }
 

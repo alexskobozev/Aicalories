@@ -66,6 +66,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.wishnewjam.aicalories.chat.presentation.model.ChatResponseModelUi
 import com.wishnewjam.aicalories.resources.Res
 import com.wishnewjam.aicalories.resources.analyzing_product
 import com.wishnewjam.aicalories.resources.app_name
@@ -75,7 +76,6 @@ import com.wishnewjam.aicalories.resources.error_prefix
 import com.wishnewjam.aicalories.resources.error_title
 import com.wishnewjam.aicalories.resources.input_label
 import com.wishnewjam.aicalories.resources.input_placeholder
-import com.wishnewjam.aicalories.resources.not_found_message
 import com.wishnewjam.aicalories.resources.not_found_title
 import com.wishnewjam.aicalories.resources.save_button
 import com.wishnewjam.aicalories.resources.send_button
@@ -85,17 +85,15 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ChatScreen() {
     val chatViewModel: ChatViewModel = koinViewModel()
-    val chatResponse by chatViewModel.chatResponse.collectAsState()
-    val savedModels by chatViewModel.savedModelsList.collectAsState()
-    val chatResponseModel by chatViewModel.chatResponseModel.collectAsState()
-    val isLoading by chatViewModel.isLoading.collectAsState()
+    val chatState by chatViewModel.modelState.collectAsState()
+    val historyState by chatViewModel.historyState.collectAsState()
     val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     var inputText by remember { mutableStateOf("") }
     val inputIsValid by remember { derivedStateOf { inputText.trim().isNotEmpty() } }
 
-    LaunchedEffect(chatResponse) {
+    LaunchedEffect(chatState) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
 
@@ -131,7 +129,7 @@ fun ChatScreen() {
             ) {
                 // Loading indicator
                 AnimatedVisibility(
-                    visible = isLoading,
+                    visible = chatState == ChatViewModel.ModelState.Loading,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
@@ -143,15 +141,18 @@ fun ChatScreen() {
                     )
                 }
 
-                LazyColumn {
-                    items(
-                        items = savedModels,
-                        key =  { it.date.toString() },
-                    ){
-                        ResponseCard(
-                            chatResponse = it.toString(),
-                            onSaveClick = { chatViewModel.saveResponse(it) }
-                        )
+                if (historyState is ChatViewModel.ListState.Success) {
+                    LazyColumn {
+                        items(
+                            items = (historyState as ChatViewModel.ListState.Success).otherModels,
+                            key = { it.date.toString() },
+                        ) {
+                            ResponseCard(
+                                chatResponse = it,
+                                isClickable = false,
+                                onSaveClick = {},
+                            )
+                        }
                     }
                 }
 
@@ -162,10 +163,15 @@ fun ChatScreen() {
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
                 ) {
-                    if (chatResponse.isNotEmpty()) {
-                        ResponseCard(
-                            chatResponse = chatResponse,
-                            onSaveClick = { chatViewModel.saveResponse(chatResponseModel) })
+                    if (chatState is ChatViewModel.ModelState.Success) {
+                        val chatResponse =
+                            (chatState as ChatViewModel.ModelState.Success).selectedModel
+                        if (chatResponse != null) {
+                            ResponseCard(
+                                chatResponse = chatResponse,
+                                isClickable = true,
+                                onSaveClick = { chatViewModel.saveResponse() })
+                        }
                     } else {
                         EmptyStateMessage()
                     }
@@ -214,12 +220,12 @@ fun ChatScreen() {
                                         inputText = ""
                                     }
                                 },
-                                enabled = !isLoading && inputIsValid,
+                                enabled = chatState != ChatViewModel.ModelState.Loading && inputIsValid,
                                 modifier = Modifier
                                     .padding(end = 8.dp)
                                     .alpha(alpha)
                             ) {
-                                if (isLoading) {
+                                if (chatState == ChatViewModel.ModelState.Loading) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(24.dp),
                                         strokeWidth = 2.dp
@@ -236,7 +242,7 @@ fun ChatScreen() {
                     )
 
                     AnimatedVisibility(
-                        visible = isLoading,
+                        visible = chatState == ChatViewModel.ModelState.Loading,
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
@@ -268,10 +274,11 @@ fun ChatScreen() {
 }
 
 @Composable
-private fun ResponseCard(chatResponse: String, onSaveClick: () -> Unit) {
-    val errorPrefix = stringResource(Res.string.error_prefix)
-    val notFoundMessage = stringResource(Res.string.not_found_message)
-
+private fun ResponseCard(
+    chatResponse: ChatResponseModelUi,
+    isClickable: Boolean,
+    onSaveClick: () -> Unit,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -279,11 +286,11 @@ private fun ResponseCard(chatResponse: String, onSaveClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                chatResponse.startsWith(errorPrefix) -> MaterialTheme.colorScheme.errorContainer.copy(
+                chatResponse.error != null -> MaterialTheme.colorScheme.errorContainer.copy(
                     alpha = 0.7f
                 )
 
-                chatResponse == notFoundMessage -> MaterialTheme.colorScheme.secondaryContainer.copy(
+                chatResponse.foodName == null -> MaterialTheme.colorScheme.secondaryContainer.copy(
                     alpha = 0.7f
                 )
 
@@ -293,14 +300,19 @@ private fun ResponseCard(chatResponse: String, onSaveClick: () -> Unit) {
         shape = RoundedCornerShape(16.dp)
     ) {
         when {
-            chatResponse.startsWith(errorPrefix) -> {
-                ErrorResponseContent(errorMessage = chatResponse)
+            chatResponse.error != null -> {
+                ErrorResponseContent(errorMessage = chatResponse.error)
             }
-            chatResponse == notFoundMessage -> {
-                NotFoundResponseContent(message = chatResponse)
+
+            chatResponse.foodName == null -> {
+                NotFoundResponseContent(message = chatResponse.comment ?: "")
             }
             else -> {
-                FoodResponseContent(chatResponse = chatResponse, onSaveClick = onSaveClick)
+                FoodResponseContent(
+                    chatResponse = chatResponse,
+                    isClickable = isClickable,
+                    onSaveClick = onSaveClick
+                )
             }
         }
     }
@@ -308,19 +320,16 @@ private fun ResponseCard(chatResponse: String, onSaveClick: () -> Unit) {
 
 @Composable
 private fun FoodResponseContent(
-    chatResponse: String,
+    chatResponse: ChatResponseModelUi,
+    isClickable: Boolean,
     onSaveClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Extract title and content
-        val lines = chatResponse.split("\n\n", limit = 2)
-        val title = lines.firstOrNull() ?: ""
-        val details = if (lines.size > 1) lines[1] else ""
+        val title = chatResponse.foodName ?: ""
 
-        // Title with emoji
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
@@ -330,82 +339,70 @@ private fun FoodResponseContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Format the details as key-value pairs
-        val detailLines = details.split("\n")
-        detailLines.forEach { line ->
-            if (line.isNotEmpty()) {
-                val parts = line.split(":", limit = 2)
-                if (parts.size == 2) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = 0.dp
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = parts[0],
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                fontWeight = FontWeight.Medium
-                            )
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 0.dp
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = chatResponse.calories ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.Medium
+                )
 
-                            Text(
-                                text = parts[1].trim(),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    // Comment or other non-key-value content
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = chatResponse.weight ?: "",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
 
+
+
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Action buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilledTonalIconButton(
-                onClick = { /* Add to favorites or save */ },
-                modifier = Modifier.padding(end = 8.dp)
+        if (isClickable) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Call,
-                    contentDescription = null
-                )
-            }
+                FilledTonalIconButton(
+                    onClick = { /* Add to favorites or save */ },
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null
+                    )
+                }
 
-            ElevatedButton(
-                onClick = onSaveClick,
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text(
-                    text = stringResource(Res.string.save_button),
-                    style = MaterialTheme.typography.labelLarge
-                )
+                ElevatedButton(
+                    onClick = onSaveClick,
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.save_button),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
     }

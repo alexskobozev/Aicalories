@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wishnewjam.aicalories.chat.domain.ChatRepository
 import com.wishnewjam.aicalories.chat.domain.model.ChatResponseModel
+import com.wishnewjam.aicalories.chat.presentation.model.ChatResponseModelUi
 import com.wishnewjam.aicalories.resources.Res
 import com.wishnewjam.aicalories.resources.calories
 import com.wishnewjam.aicalories.resources.error_prefix
@@ -21,77 +22,117 @@ class ChatViewModel(
     private val chatRepository: ChatRepository
 ) : ViewModel() {
 
-    private val _chatResponse = MutableStateFlow("")
-    val chatResponse: StateFlow<String> = _chatResponse.asStateFlow()
+    sealed class ModelState {
+        data object Loading : ModelState()
+        data class Success(
+            val selectedModel: ChatResponseModelUi?,
+        ) : ModelState()
 
-    private val _chatResponseModel = MutableStateFlow(ChatResponseModel.empty())
-    val chatResponseModel: StateFlow<ChatResponseModel> = _chatResponseModel.asStateFlow()
+        data class ErrorState(val message: String) : ModelState()
+    }
 
-    private val _savedModelsList = MutableStateFlow(listOf<ChatResponseModel>())
-    val savedModelsList: StateFlow<List<ChatResponseModel>> = _savedModelsList.asStateFlow()
+    sealed class ListState {
+        data object Loading : ListState()
+        data class Success(
+            val otherModels: List<ChatResponseModelUi>,
+        ) : ListState()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+        data class ErrorState(val message: String) : ListState()
+    }
+
+    private var selectedModel: ChatResponseModel? = null
+    private val _modelState = MutableStateFlow<ModelState>(ModelState.Loading)
+    val modelState: StateFlow<ModelState> = _modelState.asStateFlow()
+
+    private val _listState = MutableStateFlow<ListState>(ListState.Loading)
+    val historyState: StateFlow<ListState> = _listState.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    private fun refresh() {
+        _listState.value = ListState.Loading
+        viewModelScope.launch {
+            chatRepository.getHistory().collect { list ->
+                _listState.value = ListState.Success(
+                    otherModels = transformModels(list)
+                )
+            }
+        }
+    }
+
+    private suspend fun transformModels(list: List<ChatResponseModel>) =
+        list.map { model -> formatResponse(model) }
 
     fun sendMessage(message: String) {
         if (message.isBlank()) return
-        
+        _modelState.value = ModelState.Loading
         viewModelScope.launch {
-            _isLoading.value = true
             chatRepository.getChatResponse(message).fold(
                 onSuccess = { response ->
-                    // TODO: unify 2 flows
-                    _chatResponse.value = formatResponse(response)
-                    _chatResponseModel.value = response
-                    _isLoading.value = false
+                    _modelState.value = ModelState.Success(formatResponse(response))
+                    selectedModel = response
                 },
                 onFailure = { error ->
                     val errorPrefix = getString(Res.string.error_prefix)
-                    _chatResponse.value = "$errorPrefix${error.message}"
-                    _isLoading.value = false
+                    _modelState.value = ModelState.ErrorState("$errorPrefix${error.message}")
                 }
             )
         }
     }
 
-    private suspend fun formatResponse(response: ChatResponseModel): String {
+    private suspend fun formatResponse(response: ChatResponseModel): ChatResponseModelUi {
+        var foodName: String? = null
+        var caloriesText: String? = null
+        var weightText: String? = null
+        var commentText: String? = null
+        var error: String? = null
+        var date: String? = null
         if (response.error != null) {
             val errorPrefix = getString(Res.string.error_prefix)
-            return "$errorPrefix${response.error}"
+            error = "$errorPrefix${response.error}"
         }
 
         if (response.foodName == null && response.calories == null) {
-            return getString(Res.string.not_found_message)
+            error = getString(Res.string.not_found_message)
         }
 
         val productDefault = getString(Res.string.product)
-        val formattedName = response.foodName ?: productDefault
+        foodName = response.foodName ?: productDefault
 
-        val caloriesText = response.calories?.let { calories ->
+        caloriesText = response.calories?.let { calories ->
             val template = getString(Res.string.calories)
             template.replace("%d", calories.toString())
         } ?: ""
 
-        val weightText = response.weight?.let { weight ->
+        weightText = response.weight?.let { weight ->
             val template = getString(Res.string.weight)
             template.replace("%d", weight.toString())
         } ?: ""
 
-        val commentText = response.comment?.let { comment ->
+        commentText = response.comment?.let { comment ->
             val template = getString(Res.string.note)
             template.replace("%s", comment)
         } ?: ""
 
-        return buildString {
-            append("🍎 $formattedName\n\n")
-            if (caloriesText.isNotEmpty()) append("$caloriesText\n")
-            if (weightText.isNotEmpty()) append("$weightText\n")
-            if (commentText.isNotEmpty()) append("\n$commentText")
-        }.trim()
+        return ChatResponseModelUi(
+            foodName = foodName,
+            calories = caloriesText,
+            weight = weightText,
+            comment = commentText,
+            error = error,
+        )
+
+//        return buildString {
+//            append("🍎 $formattedName\n\n")
+//            if (caloriesText.isNotEmpty()) append("$caloriesText\n")
+//            if (weightText.isNotEmpty()) append("$weightText\n")
+//            if (commentText.isNotEmpty()) append("\n$commentText")
+//        }.trim()
     }
 
-    fun saveResponse(chatResponseModel: ChatResponseModel) {
-        _savedModelsList.value += chatResponseModel
-        _chatResponse.value = ""
+    fun saveResponse() {
+        selectedModel?.let { chatRepository.saveChatResponse(it) }
     }
 }

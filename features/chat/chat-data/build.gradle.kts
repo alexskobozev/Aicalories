@@ -39,11 +39,11 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.kotlin.test)
-            implementation(libs.coroutines.test)
             implementation(libs.coroutines.test)
             implementation(libs.koin.test)
             implementation(libs.ktor.client.mock)
