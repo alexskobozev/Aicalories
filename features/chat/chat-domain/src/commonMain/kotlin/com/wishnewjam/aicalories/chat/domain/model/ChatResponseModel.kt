@@ -11,8 +11,4 @@ data class ChatResponseModel(
     val comment: String? = null,
     val error: String? = null,
     var date: LocalDateTime? = null,
-) {
-    companion object {
-        fun empty() = ChatResponseModel()
-    }
-}
+)

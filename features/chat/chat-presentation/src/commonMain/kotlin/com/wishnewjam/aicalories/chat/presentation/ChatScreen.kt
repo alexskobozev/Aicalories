@@ -172,6 +172,9 @@ fun ChatScreen() {
                                 isClickable = true,
                                 onSaveClick = { chatViewModel.saveResponse() })
                         }
+                    } else if (chatState is ChatViewModel.ModelState.ErrorState) {
+                        val errorState = chatState as ChatViewModel.ModelState.ErrorState
+                        ErrorResponseContent(errorMessage = errorState.message)
                     } else {
                         EmptyStateMessage()
                     }

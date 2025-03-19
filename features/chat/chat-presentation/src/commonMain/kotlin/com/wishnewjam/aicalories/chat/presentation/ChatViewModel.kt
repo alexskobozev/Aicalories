@@ -23,6 +23,7 @@ class ChatViewModel(
 ) : ViewModel() {
 
     sealed class ModelState {
+        data object Idle : ModelState()
         data object Loading : ModelState()
         data class Success(
             val selectedModel: ChatResponseModelUi?,
@@ -41,7 +42,7 @@ class ChatViewModel(
     }
 
     private var selectedModel: ChatResponseModel? = null
-    private val _modelState = MutableStateFlow<ModelState>(ModelState.Loading)
+    private val _modelState = MutableStateFlow<ModelState>(ModelState.Idle)
     val modelState: StateFlow<ModelState> = _modelState.asStateFlow()
 
     private val _listState = MutableStateFlow<ListState>(ListState.Loading)
@@ -88,7 +89,7 @@ class ChatViewModel(
         var weightText: String? = null
         var commentText: String? = null
         var error: String? = null
-        var date: String? = null
+        val date: String = response.date.toString()
         if (response.error != null) {
             val errorPrefix = getString(Res.string.error_prefix)
             error = "$errorPrefix${response.error}"
@@ -122,6 +123,7 @@ class ChatViewModel(
             weight = weightText,
             comment = commentText,
             error = error,
+            date = date,
         )
 
 //        return buildString {
@@ -134,5 +136,6 @@ class ChatViewModel(
 
     fun saveResponse() {
         selectedModel?.let { chatRepository.saveChatResponse(it) }
+        _modelState.value = ModelState.Idle
     }
 }
