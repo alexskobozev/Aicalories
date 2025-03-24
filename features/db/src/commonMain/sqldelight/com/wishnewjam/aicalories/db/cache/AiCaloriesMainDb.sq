@@ -1,0 +1,69 @@
+-- MealEntry.sq
+
+CREATE TABLE MealEntry (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    food_name TEXT NOT NULL,
+    meal_calories INTEGER NOT NULL,
+    meal_weight INTEGER NOT NULL,
+    comment TEXT NOT NULL,
+    meal_date TEXT NOT NULL
+);
+
+-- Insert a new meal entry
+insertMealEntry:
+INSERT INTO MealEntry (food_name, meal_calories, meal_weight, comment, meal_date)
+VALUES (?, ?, ?, ?, ?);
+
+-- Get all meal entries
+getAllMealEntries:
+SELECT *
+FROM MealEntry
+ORDER BY meal_date DESC;
+
+-- Get a specific meal entry by id
+getMealEntryById:
+SELECT *
+FROM MealEntry
+WHERE id = ?;
+
+-- Update a meal entry
+updateMealEntry:
+UPDATE MealEntry
+SET food_name = ?,
+    meal_calories = ?,
+    meal_weight = ?,
+    comment = ?,
+    meal_date = ?
+WHERE id = ?;
+
+-- Delete a meal entry
+deleteMealEntry:
+DELETE FROM MealEntry
+WHERE id = ?;
+
+-- Search meal entries by food name
+searchMealEntriesByFoodName:
+SELECT *
+FROM MealEntry
+WHERE food_name LIKE '%' || ? || '%'
+ORDER BY meal_date DESC;
+
+-- Get meal entries by date
+getMealEntriesByDate:
+SELECT *
+FROM MealEntry
+WHERE meal_date LIKE ? || '%'
+ORDER BY meal_date DESC;
+
+-- Get meal entries within a date range
+getMealEntriesByDateRange:
+SELECT *
+FROM MealEntry
+WHERE meal_date BETWEEN ? AND ?
+ORDER BY meal_date DESC;
+
+-- Get total calories consumed in a specific day
+getTotalCaloriesForDay:
+SELECT SUM(meal_calories)
+FROM MealEntry
+WHERE meal_date LIKE ? || '%';

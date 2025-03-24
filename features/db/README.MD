@@ -1,0 +1,1 @@
+./gradlew :features:db:generateCommonMainAiCaloriesMainDbInterface
