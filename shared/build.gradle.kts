@@ -35,6 +35,7 @@ kotlin {
             implementation(project(":features:resources"))
             implementation(project(":features:chat:chat-presentation"))
             implementation(project(":features:network"))
+            implementation(project(":features:db"))
             implementation(project(":features:chat:chat-data"))
             implementation(libs.components.resources)
             implementation(libs.compose.runtime)
