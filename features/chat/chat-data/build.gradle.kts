@@ -34,6 +34,7 @@ kotlin {
             api(project(":features:chat:chat-presentation"))
             implementation(project(":features:logging"))
             implementation(project(":features:network"))
+            implementation(project(":features:db"))
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
             implementation(libs.ktor.client.core)

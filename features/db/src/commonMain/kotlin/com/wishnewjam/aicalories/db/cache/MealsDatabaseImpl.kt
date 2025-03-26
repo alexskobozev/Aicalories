@@ -2,13 +2,13 @@ package com.wishnewjam.aicalories.db.cache
 
 import com.wishnewjam.aicalories.db.entity.MealEntry
 
-internal class Database(databaseDriverFactory: DatabaseDriverFactory) {
+internal class MealsDatabaseImpl(databaseDriverFactory: DatabaseDriverFactory) : MealsDatabase {
     private val database = AiCaloriesMainDb(databaseDriverFactory.createDriver())
     private val dbQuery = database.aiCaloriesMainDbQueries
 
     // MealEntry operations
 
-    internal fun insertMealEntry(mealEntry: MealEntry) {
+     override fun insertMealEntry(mealEntry: MealEntry) {
         dbQuery.insertMealEntry(
             food_name = mealEntry.foodName,
             meal_calories = mealEntry.calories.toLong(),
@@ -18,17 +18,17 @@ internal class Database(databaseDriverFactory: DatabaseDriverFactory) {
         )
     }
 
-    internal fun getAllMealEntries(): List<MealEntry> {
+    override fun getAllMealEntries(): List<MealEntry> {
         return dbQuery.getAllMealEntries().executeAsList().map {
             it.toMealEntry()
         }
     }
 
-    internal fun getMealEntryById(id: Long): MealEntry? {
+    override fun getMealEntryById(id: Long): MealEntry? {
         return dbQuery.getMealEntryById(id).executeAsOneOrNull()?.toMealEntry()
     }
 
-    internal fun updateMealEntry(id: Long, mealEntry: MealEntry) {
+    override fun updateMealEntry(id: Long, mealEntry: MealEntry) {
         dbQuery.updateMealEntry(
             food_name = mealEntry.foodName,
             meal_calories = mealEntry.calories.toLong(),
@@ -39,29 +39,29 @@ internal class Database(databaseDriverFactory: DatabaseDriverFactory) {
         )
     }
 
-    internal fun deleteMealEntry(id: Long) {
+    override fun deleteMealEntry(id: Long) {
         dbQuery.deleteMealEntry(id)
     }
 
-    internal fun searchMealEntriesByFoodName(foodName: String): List<MealEntry> {
+    override fun searchMealEntriesByFoodName(foodName: String): List<MealEntry> {
         return dbQuery.searchMealEntriesByFoodName(foodName).executeAsList().map {
             it.toMealEntry()
         }
     }
 
-    internal fun getMealEntriesByDate(date: String): List<MealEntry> {
+    override fun getMealEntriesByDate(date: String): List<MealEntry> {
         return dbQuery.getMealEntriesByDate(date).executeAsList().map {
             it.toMealEntry()
         }
     }
 
-    internal fun getMealEntriesByDateRange(startDate: String, endDate: String): List<MealEntry> {
+    override fun getMealEntriesByDateRange(startDate: String, endDate: String): List<MealEntry> {
         return dbQuery.getMealEntriesByDateRange(startDate, endDate).executeAsList().map {
             it.toMealEntry()
         }
     }
 
-    internal fun getTotalCaloriesForDay(date: String): Int {
+    override fun getTotalCaloriesForDay(date: String): Int {
         return dbQuery.getTotalCaloriesForDay(date).executeAsOneOrNull()?.SUM?.toInt() ?: 0
     }
 

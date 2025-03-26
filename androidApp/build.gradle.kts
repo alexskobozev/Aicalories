@@ -51,4 +51,5 @@ dependencies {
     implementation(projects.shared)
     implementation(projects.features.resources)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.koin.core)
 }

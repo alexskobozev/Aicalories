@@ -5,6 +5,8 @@ import com.wishnewjam.aicalories.chat.data.model.ChatCompletionResponse
 import com.wishnewjam.aicalories.chat.data.model.ChatResponseMapper
 import com.wishnewjam.aicalories.chat.domain.ChatRepository
 import com.wishnewjam.aicalories.chat.domain.model.ChatResponseModel
+import com.wishnewjam.aicalories.db.cache.MealsDatabase
+import com.wishnewjam.aicalories.db.entity.MealEntry
 import com.wishnewjam.aicalories.logging.Logger
 import com.wishnewjam.aicalories.network.data.NetworkClient
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +21,7 @@ class ChatRepositoryImpl(
     private val networkRepo: NetworkClient,
     private val chatResponseMapper: ChatResponseMapper,
     private val chatRequestBuilder: GptRequestBuilder,
+    private val database: MealsDatabase,
     private val logger: Logger,
 ) : ChatRepository {
     override suspend fun getChatResponse(message: String): Result<ChatResponseModel> {
@@ -69,6 +72,7 @@ class ChatRepositoryImpl(
     override fun getHistory(): Flow<List<ChatResponseModel>> = _modelsFlow.asStateFlow()
 
     override fun saveChatResponse(model: ChatResponseModel) {
+        database.insertMealEntry(model.toMealEntry())
         val updatedList = _modelsFlow.value.toMutableList().apply {
             add(model)
         }
@@ -76,5 +80,16 @@ class ChatRepositoryImpl(
     }
 }
 
+private fun ChatResponseModel.toMealEntry(): MealEntry {
+    return MealEntry(
+        foodName = foodName.orEmpty(),
+        calories = calories ?: 0,
+        weight = weight ?: 0,
+        comment = comment.orEmpty(),
+        dateUtC = date.toString()
+    )
+}
+
 fun LocalDateTime.Companion.now(): LocalDateTime =
     Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+
