@@ -45,18 +45,18 @@ class ChatViewModel(
     private val _modelState = MutableStateFlow<ModelState>(ModelState.Idle)
     val modelState: StateFlow<ModelState> = _modelState.asStateFlow()
 
-    private val _listState = MutableStateFlow<ListState>(ListState.Loading)
-    val historyState: StateFlow<ListState> = _listState.asStateFlow()
+    private val _historyState = MutableStateFlow<ListState>(ListState.Loading)
+    val historyState: StateFlow<ListState> = _historyState.asStateFlow()
 
     init {
         refresh()
     }
 
     private fun refresh() {
-        _listState.value = ListState.Loading
+        _historyState.value = ListState.Loading
         viewModelScope.launch {
             chatRepository.getHistory().collect { list ->
-                _listState.value = ListState.Success(
+                _historyState.value = ListState.Success(
                     otherModels = transformModels(list)
                 )
             }

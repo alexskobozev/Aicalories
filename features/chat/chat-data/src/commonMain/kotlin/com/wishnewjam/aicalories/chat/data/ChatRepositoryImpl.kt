@@ -10,8 +10,7 @@ import com.wishnewjam.aicalories.db.entity.MealEntry
 import com.wishnewjam.aicalories.logging.Logger
 import com.wishnewjam.aicalories.network.data.NetworkClient
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -67,18 +66,21 @@ class ChatRepositoryImpl(
         }
     }
 
-    private val _modelsFlow = MutableStateFlow<List<ChatResponseModel>>(listOf())
-
-    override fun getHistory(): Flow<List<ChatResponseModel>> = _modelsFlow.asStateFlow()
+    override fun getHistory(): Flow<List<ChatResponseModel>> = database.getAllMealEntries()
+        .map { mealEntries -> mealEntries.map { mealEntry -> mealEntry.toChatResponseModel() } }
 
     override fun saveChatResponse(model: ChatResponseModel) {
         database.insertMealEntry(model.toMealEntry())
-        val updatedList = _modelsFlow.value.toMutableList().apply {
-            add(model)
-        }
-        _modelsFlow.value = updatedList
     }
 }
+
+private fun MealEntry.toChatResponseModel(): ChatResponseModel = ChatResponseModel(
+    foodName = foodName,
+    calories = calories,
+    weight = weight,
+    comment = comment,
+    date = LocalDateTime.parse(dateUtC)
+)
 
 private fun ChatResponseModel.toMealEntry(): MealEntry {
     return MealEntry(

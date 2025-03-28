@@ -1,6 +1,9 @@
 package com.wishnewjam.aicalories.db.cache
 
+import app.cash.sqldelight.coroutines.asFlow
 import com.wishnewjam.aicalories.db.entity.MealEntry
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 internal class MealsDatabaseImpl(databaseDriverFactory: DatabaseDriverFactory) : MealsDatabase {
     private val database = AiCaloriesMainDb(databaseDriverFactory.createDriver())
@@ -18,11 +21,10 @@ internal class MealsDatabaseImpl(databaseDriverFactory: DatabaseDriverFactory) :
         )
     }
 
-    override fun getAllMealEntries(): List<MealEntry> {
-        return dbQuery.getAllMealEntries().executeAsList().map {
-            it.toMealEntry()
+    override fun getAllMealEntries(): Flow<List<MealEntry>> =
+        dbQuery.getAllMealEntries().asFlow().map { query ->
+            query.executeAsList().map { it.toMealEntry() }
         }
-    }
 
     override fun getMealEntryById(id: Long): MealEntry? {
         return dbQuery.getMealEntryById(id).executeAsOneOrNull()?.toMealEntry()
