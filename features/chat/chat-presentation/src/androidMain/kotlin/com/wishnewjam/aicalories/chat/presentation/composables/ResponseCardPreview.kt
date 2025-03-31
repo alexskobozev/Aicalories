@@ -40,7 +40,9 @@ fun PreviewResponseCardFood() {
     val foodResponse = ChatResponseModelUi(
         error = null,
         foodName = "Pizza",
-        comment = "A delicious slice of pizza"
+        comment = "A delicious slice of pizza",
+        calories = "4234",
+        weight = "14314g"
     )
     ResponseCard(
         chatResponse = foodResponse,

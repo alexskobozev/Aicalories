@@ -13,6 +13,8 @@ fun PreviewChatHistoryList() {
             error = null,
             foodName = "Pizza",
             comment = "A delicious cheesy slice",
+            calories = "366",
+            weight = "100g",
             date = System.currentTimeMillis().toString()
         ),
         ChatResponseModelUi(
