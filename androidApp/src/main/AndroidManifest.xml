@@ -5,6 +5,7 @@
 
     <application
         android:name=".MyApplication"
+        android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">

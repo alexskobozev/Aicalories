@@ -30,6 +30,10 @@ kotlin {
     }
 
     sourceSets {
+        androidMain.dependencies {
+            implementation(libs.androidx.compose.ui.tooling) // TODO debugImplementaiton>?
+            implementation(libs.androidx.compose.ui.tooling.preview)
+        }
         commonMain.dependencies {
             implementation(project(":features:chat:chat-domain"))
             implementation(project(":features:resources"))
